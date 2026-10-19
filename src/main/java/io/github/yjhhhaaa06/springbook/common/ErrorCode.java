@@ -7,6 +7,7 @@ package io.github.yjhhhaaa06.springbook.common;
 public enum ErrorCode {
 
     VALIDATION_FAILED(40001, 400, "参数校验失败"),
+    OLD_PASSWORD_MISMATCH(40002, 400, "原密码错误"),
 
     UNAUTHORIZED(40100, 401, "未登录或凭证无效"),
     BAD_CREDENTIALS(40101, 401, "用户名或密码错误"),
@@ -31,6 +32,11 @@ public enum ErrorCode {
     RESERVATION_NOT_CANCELLABLE(40910, 409, "该预约状态不允许取消"),
     ACCOUNT_DISABLED(40911, 409, "账号已被禁用"),
     BOOK_VERSION_CONFLICT(40912, 409, "图书信息已被其他操作修改，请重试"),
+    LOAN_LIMIT_REACHED(40913, 409, "超出借阅上限"),
+    FINE_UNPAID(40914, 409, "存在未缴清罚款，禁止借阅与预约"),
+    USERNAME_DUPLICATED(40915, 409, "用户名已存在"),
+    BOOK_COPY_UNDERFLOW(40916, 409, "总册数不能低于在借与预留之和"),
+    FINE_NOT_UNPAID(40917, 409, "该借阅无待缴罚款"),
 
     BOOK_STOCK_CONFLICT(50001, 500, "库存状态异常"),
     INTERNAL_ERROR(50000, 500, "系统内部错误");

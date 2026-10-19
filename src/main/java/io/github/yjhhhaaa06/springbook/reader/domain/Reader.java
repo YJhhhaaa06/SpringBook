@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
 @Data
 public class Reader {
 
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_FROZEN = "FROZEN";
+
     private Long id;
     private String name;
     private String phone;

@@ -10,7 +10,7 @@ public record BookProperties(Loan loan, Fine fine, Reservation reservation, Jwt 
 
     public BookProperties {
         if (loan == null) {
-            loan = new Loan(30);
+            loan = new Loan(30, 5);
         }
         if (fine == null) {
             fine = new Fine(50);
@@ -23,8 +23,8 @@ public record BookProperties(Loan loan, Fine fine, Reservation reservation, Jwt 
         }
     }
 
-    /** 借阅期限（天） */
-    public record Loan(int days) {
+    /** 借阅参数：期限（天）与同时在借上限（本），上限 ≤ 0 视为不限制 */
+    public record Loan(int days, int maxBorrowing) {
     }
 
     /** 罚款单价（分/天） */

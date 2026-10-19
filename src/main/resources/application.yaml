@@ -28,6 +28,7 @@ mybatis:
 book:
   loan:
     days: 30                  # 借阅期限
+    max-borrowing: 5          # 每人同时在借上限（第二版，≤0 视为不限制）
   fine:
     per-day-cents: 50         # 逾期罚款 0.5 元/天，以「分」为单位
   reservation:
