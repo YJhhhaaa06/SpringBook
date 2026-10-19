@@ -21,8 +21,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * 无状态 JWT 安全配置。
- * 匿名：POST /api/auth/login、GET /actuator/health；
- * ADMIN：图书新增/修改/删除、新增读者；其余 /api/** 要求已认证；401/403 返回统一 Result JSON。
+ * 匿名：POST /api/auth/login、POST /api/auth/register、GET /actuator/health；
+ * ADMIN：图书写操作（含入库/下架）、读者管理（新增/列表/修改/冻结解冻）、缴纳罚款；
+ * 其余 /api/** 要求已认证（数据归属校验在业务层 AccessPolicy）。
+ * 401/403 返回统一 Result JSON。
  */
 @Configuration
 @EnableWebSecurity
@@ -41,10 +43,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/actuator/health", "/error").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/actuator/health", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/books", "/api/readers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/books/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/books/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/readers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/readers/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/loans/*/fine/pay").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex
