@@ -1,6 +1,7 @@
 package io.github.yjhhhaaa06.springbook.book.service;
 
 import io.github.yjhhhaaa06.springbook.book.domain.Book;
+import io.github.yjhhhaaa06.springbook.book.dto.BookCopiesRequest;
 import io.github.yjhhhaaa06.springbook.book.dto.BookCreateRequest;
 import io.github.yjhhhaaa06.springbook.book.dto.BookResponse;
 import io.github.yjhhhaaa06.springbook.book.dto.BookUpdateRequest;
@@ -14,10 +15,12 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 图书业务：新增、修改（乐观锁）、删除（借阅/预约占用校验）、查询与分页检索。
+ * 图书业务：新增、修改（乐观锁）、删除（借阅/预约占用校验）、查询与分页检索、
+ * 入库/下架（调整总册数，下架校验在借 + 未过期 READY 预留）。
  */
 @Service
 public class BookService {
@@ -68,6 +71,32 @@ public class BookService {
             }
         }
         throw new BizException(ErrorCode.BOOK_VERSION_CONFLICT);
+    }
+
+    /**
+     * 入库/下架：调整总册数。行锁内校验新值 ≥ 在借数 + 未过期 READY 预留数，
+     * 可借数按差额同步增减（CHECK 约束 + 条件更新兜底）。
+     */
+    @Transactional
+    public BookResponse adjustCopies(Long id, BookCopiesRequest req) {
+        Book book = bookMapper.lockById(id);
+        if (book == null) {
+            throw new BizException(ErrorCode.BOOK_NOT_FOUND);
+        }
+        int newTotal = req.totalCopies();
+        if (newTotal == book.getTotalCopies()) {
+            return BookResponse.from(book);
+        }
+        long occupied = loanMapper.countBorrowedByBook(id)
+                + reservationMapper.countReadyByBook(id, LocalDateTime.now());
+        if (newTotal < occupied) {
+            throw new BizException(ErrorCode.BOOK_COPY_UNDERFLOW);
+        }
+        int delta = newTotal - book.getTotalCopies();
+        if (bookMapper.updateCopies(id, newTotal, delta, book.getTotalCopies()) != 1) {
+            throw new BizException(ErrorCode.BOOK_STOCK_CONFLICT);
+        }
+        return BookResponse.from(bookMapper.findById(id));
     }
 
     @Transactional
