@@ -61,7 +61,9 @@ class LoanIntegrationTest extends IntegrationTestBase {
         assertThat(longOf(asMap(r1.data()), "fineCents")).isEqualTo(50);
 
         // 逾期 25 小时 → 向上取整 2 天 → 100 分
-        long loan2 = borrow(bookId, readerId);
+        // （第二版起逾期归还自动冻结读者，故第二次借书换新读者，罚款金额与读者无关）
+        long reader2 = createReader("借书人丁二", "13900000014");
+        long loan2 = borrow(bookId, reader2);
         setDueAt(loan2, LocalDateTime.now().minusHours(25));
         ApiResult r2 = post("/api/loans/" + loan2 + "/return", null, adminToken);
         assertThat(longOf(asMap(r2.data()), "overdueDays")).isEqualTo(2);

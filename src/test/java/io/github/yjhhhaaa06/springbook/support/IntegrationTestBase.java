@@ -85,6 +85,10 @@ public abstract class IntegrationTestBase {
         return exchange(url, HttpMethod.POST, body, token, uriVars);
     }
 
+    protected ApiResult patch(String url, Object body, String token, Object... uriVars) {
+        return exchange(url, HttpMethod.PATCH, body, token, uriVars);
+    }
+
     protected ApiResult put(String url, Object body, String token, Object... uriVars) {
         return exchange(url, HttpMethod.PUT, body, token, uriVars);
     }
@@ -144,6 +148,28 @@ public abstract class IntegrationTestBase {
         ApiResult result = post("/api/readers", Map.of("name", name, "phone", phone), adminToken);
         org.assertj.core.api.Assertions.assertThat(result.code()).isZero();
         return longOf(asMap(result.data()), "id");
+    }
+
+    /** 注册账号响应：readerId 经库表反查（token 载荷不含 readerId 的明文出口） */
+    public record ReaderAccount(long accountId, long readerId, String token) {
+    }
+
+    /** 走自助注册接口建 READER 账号，返回可用于调用业务接口的 token */
+    protected ReaderAccount registerReader(String username, String password, String name, String phone) {
+        ApiResult result = post("/api/auth/register",
+                Map.of("username", username, "password", password, "name", name, "phone", phone), null);
+        org.assertj.core.api.Assertions.assertThat(result.code()).isZero();
+        String token = (String) asMap(result.data()).get("token");
+        Long readerId = jdbc.queryForObject(
+                "SELECT reader_id FROM accounts WHERE username = ?", Long.class, username);
+        Long accountId = jdbc.queryForObject(
+                "SELECT id FROM accounts WHERE username = ?", Long.class, username);
+        return new ReaderAccount(accountId, readerId, token);
+    }
+
+    /** 直查读者状态（冻结/解冻断言用） */
+    protected String readerStatus(long readerId) {
+        return jdbc.queryForObject("SELECT status FROM readers WHERE id = ?", String.class, readerId);
     }
 
     protected long borrow(long bookId, long readerId) {
