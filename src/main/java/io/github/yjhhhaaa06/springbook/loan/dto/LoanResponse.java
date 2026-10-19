@@ -20,6 +20,7 @@ public record LoanResponse(
         String status,
         Integer fineCents,
         BigDecimal fine,
+        String fineStatus,
         boolean overdue
 ) {
 
@@ -40,6 +41,7 @@ public record LoanResponse(
                 loan.getStatus(),
                 loan.getFineCents(),
                 BigDecimal.valueOf(loan.getFineCents()).movePointLeft(2),
+                loan.getFineStatus(),
                 loan.overdue(now)
         );
     }

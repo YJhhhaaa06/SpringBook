@@ -1,10 +1,13 @@
 package io.github.yjhhhaaa06.springbook.reservation.service;
 
+import io.github.yjhhhaaa06.springbook.auth.AccessPolicy;
+import io.github.yjhhhaaa06.springbook.auth.AuthPrincipal;
 import io.github.yjhhhaaa06.springbook.book.domain.Book;
 import io.github.yjhhhaaa06.springbook.book.mapper.BookMapper;
 import io.github.yjhhhaaa06.springbook.common.BizException;
 import io.github.yjhhhaaa06.springbook.common.ErrorCode;
 import io.github.yjhhhaaa06.springbook.config.BookProperties;
+import io.github.yjhhhaaa06.springbook.loan.mapper.LoanMapper;
 import io.github.yjhhhaaa06.springbook.reader.mapper.ReaderMapper;
 import io.github.yjhhhaaa06.springbook.reservation.domain.Reservation;
 import io.github.yjhhhaaa06.springbook.reservation.dto.ReservationResponse;
@@ -26,6 +29,9 @@ import java.util.List;
  * <p>库存口径：READY 预约会占用一个 available_copies（借出履约时不再扣减）；
  * READY 失效（EXPIRED/CANCELLED）时该名额顺延给下一位 WAITING，若队列已空则归还库存。
  * 涉及库存/队列流转的方法都要求调用方先对 books 行加锁（lockById），保证同书操作串行。
+ *
+ * <p>第二版：发起预约拦截未缴清罚款（与借书同口径）；预约不校验借阅上限（排队无害，取书时再拦）；
+ * 数据归属见 AccessPolicy（READER 仅能操作自己的预约）。
  */
 @Service
 public class ReservationService {
@@ -33,27 +39,37 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
     private final BookMapper bookMapper;
     private final ReaderMapper readerMapper;
+    private final LoanMapper loanMapper;
+    private final AccessPolicy accessPolicy;
     private final BookProperties props;
 
     public ReservationService(ReservationMapper reservationMapper, BookMapper bookMapper,
-                              ReaderMapper readerMapper, BookProperties props) {
+                              ReaderMapper readerMapper, LoanMapper loanMapper,
+                              AccessPolicy accessPolicy, BookProperties props) {
         this.reservationMapper = reservationMapper;
         this.bookMapper = bookMapper;
         this.readerMapper = readerMapper;
+        this.loanMapper = loanMapper;
+        this.accessPolicy = accessPolicy;
         this.props = props;
     }
 
     /**
-     * 发起预约：仅当可借数量为 0 时允许，同一读者对同一本书只能有一条活跃预约。
+     * 发起预约：仅当可借数量为 0 时允许，同一读者对同一本书只能有一条活跃预约；
+     * 存在未缴清罚款的读者禁止预约。
      */
     @Transactional
-    public ReservationResponse create(Long bookId, Long readerId) {
+    public ReservationResponse create(Long bookId, Long readerId, AuthPrincipal principal) {
+        accessPolicy.assertSelfOrAdmin(principal, readerId);
         Book book = bookMapper.findById(bookId);
         if (book == null) {
             throw new BizException(ErrorCode.BOOK_NOT_FOUND);
         }
         if (readerMapper.findById(readerId) == null) {
             throw new BizException(ErrorCode.READER_NOT_FOUND);
+        }
+        if (loanMapper.countUnpaidByReader(readerId) > 0) {
+            throw new BizException(ErrorCode.FINE_UNPAID);
         }
         if (book.getAvailableCopies() > 0) {
             throw new BizException(ErrorCode.RESERVATION_NOT_ALLOWED);
@@ -71,13 +87,15 @@ public class ReservationService {
 
     /**
      * 取消预约：WAITING 直接取消；READY 取消后须释放占用名额（顺延下一位或归还库存）。
+     * READER 仅能取消自己的预约。
      */
     @Transactional
-    public ReservationResponse cancel(Long reservationId) {
+    public ReservationResponse cancel(Long reservationId, AuthPrincipal principal) {
         Reservation reservation = reservationMapper.findById(reservationId);
         if (reservation == null) {
             throw new BizException(ErrorCode.RESERVATION_NOT_FOUND);
         }
+        accessPolicy.assertSelfOrAdmin(principal, reservation.getReaderId());
         String status = reservation.getStatus();
         if (!Reservation.STATUS_WAITING.equals(status) && !Reservation.STATUS_READY.equals(status)) {
             throw new BizException(ErrorCode.RESERVATION_NOT_CANCELLABLE);
