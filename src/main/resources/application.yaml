@@ -19,6 +19,7 @@ spring:
     default-property-inclusion: non_null
 
 mybatis:
+  mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
   type-aliases-package: io.github.yjhhhaaa06.springbook
@@ -31,6 +32,9 @@ book:
     per-day-cents: 50         # 逾期罚款 0.5 元/天，以「分」为单位
   reservation:
     hold-hours: 48            # 预约到书后的保留时长
+  jwt:
+    secret: ${JWT_SECRET:}    # 只从环境变量注入，缺失则启动失败（fail-fast）
+    expire-minutes: 120       # token 有效期 2 小时
 
 server:
   port: 8080
