@@ -2,11 +2,12 @@ package io.github.yjhhhaaa06.springbook.reader.dto;
 
 import io.github.yjhhhaaa06.springbook.reader.domain.Reader;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 读者详情（含在借列表）。
+ * 读者详情（含在借列表与未缴罚款汇总）。
  */
 public record ReaderDetailResponse(
         Long id,
@@ -14,6 +15,8 @@ public record ReaderDetailResponse(
         String phone,
         String status,
         LocalDateTime createdAt,
+        Long unpaidFineCents,
+        BigDecimal unpaidFine,
         List<OnLoanItem> onLoans
 ) {
 
@@ -30,8 +33,9 @@ public record ReaderDetailResponse(
     ) {
     }
 
-    public static ReaderDetailResponse of(Reader reader, List<OnLoanItem> onLoans) {
+    public static ReaderDetailResponse of(Reader reader, long unpaidFineCents, List<OnLoanItem> onLoans) {
         return new ReaderDetailResponse(reader.getId(), reader.getName(), reader.getPhone(),
-                reader.getStatus(), reader.getCreatedAt(), onLoans);
+                reader.getStatus(), reader.getCreatedAt(),
+                unpaidFineCents, BigDecimal.valueOf(unpaidFineCents).movePointLeft(2), onLoans);
     }
 }
