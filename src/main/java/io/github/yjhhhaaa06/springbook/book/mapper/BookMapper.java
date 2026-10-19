@@ -40,4 +40,10 @@ public interface BookMapper {
 
     /** 条件回补库存：available_copies &lt; total_copies 才生效，返回受影响行数 */
     int incrementIfBelowTotal(@Param("id") Long id);
+
+    /** 入库/下架：调整总册数并同步增减可借数（行锁内调用，expectedTotal 防御并发），返回受影响行数 */
+    int updateCopies(@Param("id") Long id,
+                     @Param("totalCopies") Integer totalCopies,
+                     @Param("delta") Integer delta,
+                     @Param("expectedTotal") Integer expectedTotal);
 }

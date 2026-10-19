@@ -27,6 +27,14 @@
           AND status IN ('WAITING', 'READY')
     </select>
 
+    <select id="countReadyByBook" resultType="long">
+        SELECT COUNT(*)
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND status = 'READY'
+          AND hold_until &gt; #{now}
+    </select>
+
     <select id="countActiveByReaderAndBook" resultType="long">
         SELECT COUNT(*)
         FROM reservations

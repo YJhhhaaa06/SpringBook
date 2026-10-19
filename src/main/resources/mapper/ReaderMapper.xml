@@ -24,4 +24,47 @@
         WHERE phone = #{phone}
     </select>
 
+    <select id="lockById" resultType="io.github.yjhhhaaa06.springbook.reader.domain.Reader">
+        SELECT <include refid="allColumns"/>
+        FROM readers
+        WHERE id = #{id}
+        FOR UPDATE
+    </select>
+
+    <update id="updateStatus">
+        UPDATE readers
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="update">
+        UPDATE readers
+        SET name = #{name},
+            phone = #{phone}
+        WHERE id = #{id}
+    </update>
+
+    <sql id="keywordFilter">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%')
+                  OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <select id="countByKeyword" resultType="long">
+        SELECT COUNT(*)
+        FROM readers
+        <include refid="keywordFilter"/>
+    </select>
+
+    <select id="listByKeyword" resultType="io.github.yjhhhaaa06.springbook.reader.domain.Reader">
+        SELECT <include refid="allColumns"/>
+        FROM readers
+        <include refid="keywordFilter"/>
+        ORDER BY id ASC
+        LIMIT #{offset}, #{size}
+    </select>
+
 </mapper>

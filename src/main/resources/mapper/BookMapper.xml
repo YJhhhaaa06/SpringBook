@@ -81,4 +81,14 @@
           AND available_copies &lt; total_copies
     </update>
 
+    <update id="updateCopies">
+        UPDATE books
+        SET total_copies = #{totalCopies},
+            available_copies = available_copies + #{delta},
+            version = version + 1
+        WHERE id = #{id}
+          AND total_copies = #{expectedTotal}
+          AND available_copies + #{delta} BETWEEN 0 AND #{totalCopies}
+    </update>
+
 </mapper>

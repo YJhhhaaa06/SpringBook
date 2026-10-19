@@ -13,6 +13,12 @@
         WHERE username = #{username}
     </select>
 
+    <select id="findById" resultType="io.github.yjhhhaaa06.springbook.auth.domain.Account">
+        SELECT <include refid="allColumns"/>
+        FROM accounts
+        WHERE id = #{id}
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO accounts (username, password_hash, role, reader_id, status)
         VALUES (#{username}, #{passwordHash}, #{role}, #{readerId}, #{status})
@@ -23,5 +29,11 @@
         FROM accounts
         WHERE role = #{role}
     </select>
+
+    <update id="updatePassword">
+        UPDATE accounts
+        SET password_hash = #{passwordHash}
+        WHERE id = #{id}
+    </update>
 
 </mapper>

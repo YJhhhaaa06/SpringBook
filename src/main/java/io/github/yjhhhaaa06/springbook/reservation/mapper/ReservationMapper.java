@@ -20,6 +20,9 @@ public interface ReservationMapper {
     /** 该书活跃（WAITING/READY）预约数，删除图书前置校验 */
     long countActiveByBook(@Param("bookId") Long bookId);
 
+    /** 该书未过期 READY 预约数（占用了可借名额，下架校验用） */
+    long countReadyByBook(@Param("bookId") Long bookId, @Param("now") LocalDateTime now);
+
     /** 同一读者对同一本书的活跃预约数（唯一活跃预约校验） */
     long countActiveByReaderAndBook(@Param("bookId") Long bookId, @Param("readerId") Long readerId);
 

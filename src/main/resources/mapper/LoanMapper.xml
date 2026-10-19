@@ -5,7 +5,7 @@
 
     <sql id="selectWithNames">
         SELECT l.id, l.book_id, l.reader_id, l.borrowed_at, l.due_at, l.returned_at,
-               l.status, l.fine_cents, l.created_at, l.updated_at,
+               l.status, l.fine_cents, l.fine_status, l.created_at, l.updated_at,
                b.title AS book_title, r.name AS reader_name
         FROM loans l
         JOIN books b ON b.id = l.book_id
@@ -26,9 +26,17 @@
         UPDATE loans
         SET returned_at = #{returnedAt},
             status = 'RETURNED',
-            fine_cents = #{fineCents}
+            fine_cents = #{fineCents},
+            fine_status = CASE WHEN #{fineCents} &gt; 0 THEN 'UNPAID' ELSE 'NONE' END
         WHERE id = #{id}
           AND status = 'BORROWED'
+    </update>
+
+    <update id="markFinePaid">
+        UPDATE loans
+        SET fine_status = 'PAID'
+        WHERE id = #{id}
+          AND fine_status = 'UNPAID'
     </update>
 
     <select id="countBorrowedByBook" resultType="long">
@@ -36,6 +44,35 @@
         FROM loans
         WHERE book_id = #{bookId}
           AND status = 'BORROWED'
+    </select>
+
+    <select id="countBorrowedByReader" resultType="long">
+        SELECT COUNT(*)
+        FROM loans
+        WHERE reader_id = #{readerId}
+          AND status = 'BORROWED'
+    </select>
+
+    <select id="countUnpaidByReader" resultType="long">
+        SELECT COUNT(*)
+        FROM loans
+        WHERE reader_id = #{readerId}
+          AND fine_status = 'UNPAID'
+    </select>
+
+    <select id="sumUnpaidByReader" resultType="long">
+        SELECT COALESCE(SUM(fine_cents), 0)
+        FROM loans
+        WHERE reader_id = #{readerId}
+          AND fine_status = 'UNPAID'
+    </select>
+
+    <select id="countOverdueBorrowedByReader" resultType="long">
+        SELECT COUNT(*)
+        FROM loans
+        WHERE reader_id = #{readerId}
+          AND status = 'BORROWED'
+          AND due_at &lt; #{now}
     </select>
 
     <select id="listBorrowedByReader" resultType="io.github.yjhhhaaa06.springbook.loan.domain.Loan">
