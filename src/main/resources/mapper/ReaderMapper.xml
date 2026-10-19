@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.yjhhhaaa06.springbook.reader.mapper.ReaderMapper">
+
+    <sql id="allColumns">
+        id, name, phone, status, created_at, updated_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO readers (name, phone)
+        VALUES (#{name}, #{phone})
+    </insert>
+
+    <select id="findById" resultType="io.github.yjhhhaaa06.springbook.reader.domain.Reader">
+        SELECT <include refid="allColumns"/>
+        FROM readers
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByPhone" resultType="io.github.yjhhhaaa06.springbook.reader.domain.Reader">
+        SELECT <include refid="allColumns"/>
+        FROM readers
+        WHERE phone = #{phone}
+    </select>
+
+</mapper>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.yjhhhaaa06.springbook.loan.mapper.LoanMapper">
+
+    <sql id="selectWithNames">
+        SELECT l.id, l.book_id, l.reader_id, l.borrowed_at, l.due_at, l.returned_at,
+               l.status, l.fine_cents, l.created_at, l.updated_at,
+               b.title AS book_title, r.name AS reader_name
+        FROM loans l
+        JOIN books b ON b.id = l.book_id
+        JOIN readers r ON r.id = l.reader_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO loans (book_id, reader_id, borrowed_at, due_at, status)
+        VALUES (#{bookId}, #{readerId}, #{borrowedAt}, #{dueAt}, #{status})
+    </insert>
+
+    <select id="findById" resultType="io.github.yjhhhaaa06.springbook.loan.domain.Loan">
+        <include refid="selectWithNames"/>
+        WHERE l.id = #{id}
+    </select>
+
+    <update id="markReturned">
+        UPDATE loans
+        SET returned_at = #{returnedAt},
+            status = 'RETURNED',
+            fine_cents = #{fineCents}
+        WHERE id = #{id}
+          AND status = 'BORROWED'
+    </update>
+
+    <select id="countBorrowedByBook" resultType="long">
+        SELECT COUNT(*)
+        FROM loans
+        WHERE book_id = #{bookId}
+          AND status = 'BORROWED'
+    </select>
+
+    <select id="listBorrowedByReader" resultType="io.github.yjhhhaaa06.springbook.loan.domain.Loan">
+        <include refid="selectWithNames"/>
+        WHERE l.reader_id = #{readerId}
+          AND l.status = 'BORROWED'
+        ORDER BY l.due_at ASC
+    </select>
+
+    <select id="listByQuery" resultType="io.github.yjhhhaaa06.springbook.loan.domain.Loan">
+        <include refid="selectWithNames"/>
+        <where>
+            <if test="readerId != null">
+                AND l.reader_id = #{readerId}
+            </if>
+            <choose>
+                <when test="overdue != null and overdue">
+                    AND l.status = 'BORROWED'
+                    AND l.due_at &lt; #{now}
+                </when>
+                <otherwise>
+                    <if test="status != null and status != ''">
+                        AND l.status = #{status}
+                    </if>
+                </otherwise>
+            </choose>
+        </where>
+        ORDER BY l.id DESC
+    </select>
+
+</mapper>

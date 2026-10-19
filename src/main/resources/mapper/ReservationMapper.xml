@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.yjhhhaaa06.springbook.reservation.mapper.ReservationMapper">
+
+    <sql id="selectWithReader">
+        SELECT rv.id, rv.book_id, rv.reader_id, rv.status, rv.created_at, rv.ready_at, rv.hold_until,
+               r.name AS reader_name
+        FROM reservations rv
+        JOIN readers r ON r.id = rv.reader_id
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO reservations (book_id, reader_id, status)
+        VALUES (#{bookId}, #{readerId}, #{status})
+    </insert>
+
+    <select id="findById" resultType="io.github.yjhhhaaa06.springbook.reservation.domain.Reservation">
+        <include refid="selectWithReader"/>
+        WHERE rv.id = #{id}
+    </select>
+
+    <select id="countActiveByBook" resultType="long">
+        SELECT COUNT(*)
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND status IN ('WAITING', 'READY')
+    </select>
+
+    <select id="countActiveByReaderAndBook" resultType="long">
+        SELECT COUNT(*)
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND reader_id = #{readerId}
+          AND status IN ('WAITING', 'READY')
+    </select>
+
+    <select id="findFirstWaitingByBook" resultType="io.github.yjhhhaaa06.springbook.reservation.domain.Reservation">
+        SELECT id, book_id, reader_id, status, created_at, ready_at, hold_until
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND status = 'WAITING'
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1
+    </select>
+
+    <select id="findReadyByBookAndReader" resultType="io.github.yjhhhaaa06.springbook.reservation.domain.Reservation">
+        SELECT id, book_id, reader_id, status, created_at, ready_at, hold_until
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND reader_id = #{readerId}
+          AND status = 'READY'
+          AND hold_until &gt; #{now}
+        LIMIT 1
+    </select>
+
+    <select id="listOverdueReady" resultType="io.github.yjhhhaaa06.springbook.reservation.domain.Reservation">
+        SELECT id, book_id, reader_id, status, created_at, ready_at, hold_until
+        FROM reservations
+        WHERE book_id = #{bookId}
+          AND status = 'READY'
+          AND hold_until &lt; #{now}
+        ORDER BY ready_at ASC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE reservations
+        SET status = #{status},
+            ready_at = #{readyAt},
+            hold_until = #{holdUntil}
+        WHERE id = #{id}
+    </update>
+
+    <select id="listByBook" resultType="io.github.yjhhhaaa06.springbook.reservation.domain.Reservation">
+        <include refid="selectWithReader"/>
+        WHERE rv.book_id = #{bookId}
+        ORDER BY rv.created_at ASC, rv.id ASC
+    </select>
+
+</mapper>

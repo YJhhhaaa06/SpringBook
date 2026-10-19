@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.yjhhhaaa06.springbook.book.mapper.BookMapper">
+
+    <sql id="allColumns">
+        id, isbn, title, total_copies, available_copies, price_cents, version, created_at, updated_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO books (isbn, title, total_copies, available_copies, price_cents)
+        VALUES (#{isbn}, #{title}, #{totalCopies}, #{availableCopies}, #{priceCents})
+    </insert>
+
+    <select id="findById" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        WHERE id = #{id}
+    </select>
+
+    <select id="lockById" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        WHERE id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="findByIsbn" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        WHERE isbn = #{isbn}
+    </select>
+
+    <update id="updateTitleAndPrice">
+        UPDATE books
+        SET title = #{title},
+            price_cents = #{priceCents},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{expectedVersion}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM books
+        WHERE id = #{id}
+    </delete>
+
+    <select id="countByKeyword" resultType="long">
+        SELECT COUNT(*)
+        FROM books
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR isbn LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="listByKeyword" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR isbn LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <update id="decrementIfAvailable">
+        UPDATE books
+        SET available_copies = available_copies - 1
+        WHERE id = #{id}
+          AND available_copies &gt; 0
+    </update>
+
+    <update id="incrementIfBelowTotal">
+        UPDATE books
+        SET available_copies = available_copies + 1
+        WHERE id = #{id}
+          AND available_copies &lt; total_copies
+    </update>
+
+</mapper>
