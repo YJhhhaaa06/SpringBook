@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.yjhhhaaa06.springbook.auth.mapper.AccountMapper">
+
+    <sql id="allColumns">
+        id, username, password_hash, role, reader_id, status, created_at, updated_at
+    </sql>
+
+    <select id="findByUsername" resultType="io.github.yjhhhaaa06.springbook.auth.domain.Account">
+        SELECT <include refid="allColumns"/>
+        FROM accounts
+        WHERE username = #{username}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO accounts (username, password_hash, role, reader_id, status)
+        VALUES (#{username}, #{passwordHash}, #{role}, #{readerId}, #{status})
+    </insert>
+
+    <select id="countByRole" resultType="long">
+        SELECT COUNT(*)
+        FROM accounts
+        WHERE role = #{role}
+    </select>
+
+</mapper>

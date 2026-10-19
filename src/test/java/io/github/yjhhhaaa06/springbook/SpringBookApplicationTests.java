@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 骨架冒烟测试：验证 MyBatis 自动配置 + Flyway + Testcontainers(MySQL 8.4) 能在 Boot 4.1.1 下协同工作。
  */
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = "book.jwt.secret=test-only-secret-0123456789abcdef-0123456789abcdef")
 class SpringBookApplicationTests {
 
     @Container
