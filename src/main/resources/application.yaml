@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: SpringBook
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:springbook}?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:springbook}
+    password: ${DB_PASSWORD:springbook}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jackson:
+    default-property-inclusion: non_null
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: io.github.yjhhhaaa06.springbook
+
+# 业务参数
+book:
+  loan:
+    days: 30                  # 借阅期限
+  fine:
+    per-day-cents: 50         # 逾期罚款 0.5 元/天，以「分」为单位
+  reservation:
+    hold-hours: 48            # 预约到书后的保留时长
+
+server:
+  port: 8080
