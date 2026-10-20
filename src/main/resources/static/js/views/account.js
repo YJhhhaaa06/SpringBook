@@ -43,7 +43,7 @@ export function render(root, ctx) {
               <dt>令牌到期</dt>
               <dd>
                 ${countdownHtml(tokenDeadline)}
-                <div class="muted" style="font-size:11.5px">到期后需重新登录（有效期 2 小时，无状态 JWT 不可续期）</div>
+                <div class="muted" style="font-size:11.5px">到期后需重新登录</div>
               </dd>
             </dl>
           </div>

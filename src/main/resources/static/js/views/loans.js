@@ -157,7 +157,7 @@ export function render(root, ctx) {
       <span>共 <b class="num">${state.records.length}</b> 条${
         state.filter === 'overdue' ? '逾期记录' : ''
       }</span>
-      <span class="muted">逾期按不足一天计一天，罚款 0.50 元/天（封顶为书价）</span>
+      <span class="muted">逾期按不足一天按一天计算，罚款 0.50 元/天（封顶为书价）</span>
     </div>`;
   }
 
