@@ -1,0 +1,15 @@
+# 构建上下文瘦身：只保留 pom.xml 与 src/
+target/
+temp-script/
+.docs/
+.idea/
+.workbuddy/
+.git/
+.gitignore
+.gitattributes
+Dockerfile
+compose.yaml
+HELP.md
+*.log
+.env
+.env.*
