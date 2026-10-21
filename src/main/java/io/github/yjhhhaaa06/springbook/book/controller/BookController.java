@@ -5,6 +5,8 @@ import io.github.yjhhhaaa06.springbook.book.dto.BookCreateRequest;
 import io.github.yjhhhaaa06.springbook.book.dto.BookResponse;
 import io.github.yjhhhaaa06.springbook.book.dto.BookSuggestion;
 import io.github.yjhhhaaa06.springbook.book.dto.BookUpdateRequest;
+import io.github.yjhhhaaa06.springbook.book.dto.HotBookResponse;
+import io.github.yjhhhaaa06.springbook.book.service.BookHotService;
 import io.github.yjhhhaaa06.springbook.book.service.BookService;
 import io.github.yjhhhaaa06.springbook.common.PageResult;
 import io.github.yjhhhaaa06.springbook.common.Result;
@@ -30,9 +32,11 @@ import java.util.List;
 public class BookController {
 
     private final BookService bookService;
+    private final BookHotService bookHotService;
 
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, BookHotService bookHotService) {
         this.bookService = bookService;
+        this.bookHotService = bookHotService;
     }
 
     @PostMapping
@@ -65,6 +69,15 @@ public class BookController {
     public Result<List<BookSuggestion>> suggest(@RequestParam(name = "q", required = false) String q,
                                                 @RequestParam(required = false) Integer limit) {
         return Result.ok(bookService.suggest(q, limit));
+    }
+
+    /**
+     * 热门榜（按借阅次数 + 预约人数加权）。{@code days=0} 表示不限时间窗。
+     */
+    @GetMapping("/hot")
+    public Result<List<HotBookResponse>> hot(@RequestParam(required = false) Integer limit,
+                                             @RequestParam(required = false) Integer days) {
+        return Result.ok(bookHotService.hot(limit, days));
     }
 
     @GetMapping("/{id}")
