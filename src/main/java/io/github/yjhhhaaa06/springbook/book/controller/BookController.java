@@ -3,6 +3,7 @@ package io.github.yjhhhaaa06.springbook.book.controller;
 import io.github.yjhhhaaa06.springbook.book.dto.BookCopiesRequest;
 import io.github.yjhhhaaa06.springbook.book.dto.BookCreateRequest;
 import io.github.yjhhhaaa06.springbook.book.dto.BookResponse;
+import io.github.yjhhhaaa06.springbook.book.dto.BookSuggestion;
 import io.github.yjhhhaaa06.springbook.book.dto.BookUpdateRequest;
 import io.github.yjhhhaaa06.springbook.book.service.BookService;
 import io.github.yjhhhaaa06.springbook.common.PageResult;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 图书接口。写操作（新增/修改/删除/入库下架）要求 ADMIN，查询要求已认证。
@@ -52,6 +55,16 @@ public class BookController {
     public Result<Void> delete(@PathVariable Long id) {
         bookService.delete(id);
         return Result.ok();
+    }
+
+    /**
+     * 书名联想（<b>前缀</b>匹配，不是包含匹配）。参数名用 q 而非 keyword，
+     * 就是为了让调用方一眼看出它和检索接口的语义差异。
+     */
+    @GetMapping("/suggest")
+    public Result<List<BookSuggestion>> suggest(@RequestParam(name = "q", required = false) String q,
+                                                @RequestParam(required = false) Integer limit) {
+        return Result.ok(bookService.suggest(q, limit));
     }
 
     @GetMapping("/{id}")
