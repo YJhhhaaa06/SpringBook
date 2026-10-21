@@ -103,4 +103,16 @@
         ORDER BY l.id DESC
     </select>
 
+    <select id="listBorrowCountsSince" resultType="io.github.yjhhhaaa06.springbook.common.BookHitCount">
+        SELECT book_id, COUNT(*) AS hits
+        FROM loans
+        <where>
+            <if test="since != null">
+                AND borrowed_at &gt;= #{since}
+            </if>
+        </where>
+        GROUP BY book_id
+        ORDER BY book_id
+    </select>
+
 </mapper>

@@ -24,6 +24,9 @@ public interface BookMapper {
     /** 全量读取（仅书名索引启动装载使用；其余查询一律走条件检索） */
     List<Book> listAll();
 
+    /** 按 id 批量读取（热门榜拿到 top-K 后补齐书名，避免逐条查询）；调用方保证 ids 非空 */
+    List<Book> findByIds(@Param("ids") List<Long> ids);
+
     /** 乐观锁更新书名与价格，返回受影响行数（0 表示版本冲突） */
     int updateTitleAndPrice(@Param("id") Long id,
                             @Param("title") String title,

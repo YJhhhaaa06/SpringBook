@@ -1,5 +1,6 @@
 package io.github.yjhhhaaa06.springbook.reservation.mapper;
 
+import io.github.yjhhhaaa06.springbook.common.BookHitCount;
 import io.github.yjhhhaaa06.springbook.reservation.domain.Reservation;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -45,4 +46,10 @@ public interface ReservationMapper {
 
     /** 该书预约队列（含历史），按排队时间升序；join readers 带出姓名 */
     List<Reservation> listByBook(@Param("bookId") Long bookId);
+
+    /**
+     * 按图书统计<b>活跃</b>预约人数（WAITING + READY），热门榜用。
+     * 结果按 bookId 升序，便于与借阅计数做归并。
+     */
+    List<BookHitCount> listActiveCounts();
 }

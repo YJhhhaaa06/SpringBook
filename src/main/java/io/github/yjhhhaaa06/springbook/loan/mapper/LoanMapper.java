@@ -1,5 +1,6 @@
 package io.github.yjhhhaaa06.springbook.loan.mapper;
 
+import io.github.yjhhhaaa06.springbook.common.BookHitCount;
 import io.github.yjhhhaaa06.springbook.loan.domain.Loan;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -41,6 +42,12 @@ public interface LoanMapper {
     /** 某读者在借且已逾期的借阅数（自动解冻判定），now 由调用方传入 */
     long countOverdueBorrowedByReader(@Param("readerId") Long readerId,
                                       @Param("now") LocalDateTime now);
+
+    /**
+     * 按图书统计借阅次数（热门榜用）。{@code since} 为 null 表示不限时间窗。
+     * 结果按 bookId 升序，便于与预约计数做归并。
+     */
+    List<BookHitCount> listBorrowCountsSince(@Param("since") LocalDateTime since);
 
     /** 某读者的在借列表（join books 带出书名），按应还时间升序 */
     List<Loan> listBorrowedByReader(@Param("readerId") Long readerId);
