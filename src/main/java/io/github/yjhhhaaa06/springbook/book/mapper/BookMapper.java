@@ -21,6 +21,9 @@ public interface BookMapper {
 
     Book findByIsbn(@Param("isbn") String isbn);
 
+    /** 全量读取（仅书名索引启动装载使用；其余查询一律走条件检索） */
+    List<Book> listAll();
+
     /** 乐观锁更新书名与价格，返回受影响行数（0 表示版本冲突） */
     int updateTitleAndPrice(@Param("id") Long id,
                             @Param("title") String title,

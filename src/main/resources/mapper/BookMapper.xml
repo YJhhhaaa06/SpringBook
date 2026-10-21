@@ -31,6 +31,12 @@
         WHERE isbn = #{isbn}
     </select>
 
+    <select id="listAll" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        ORDER BY id
+    </select>
+
     <update id="updateTitleAndPrice">
         UPDATE books
         SET title = #{title},
