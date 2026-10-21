@@ -53,7 +53,9 @@ export function render(root, ctx) {
       <form class="search" data-role="search">
         <span class="search__icon">${icon('search', 16)}</span>
         <input class="input" name="keyword" type="search" autocomplete="off"
-          placeholder="书名或书号，回车检索" aria-label="检索图书" />
+          placeholder="书名或书号，回车检索" aria-label="检索图书"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="book-suggest" />
+        <div class="search__panel" id="book-suggest" data-role="suggest" role="listbox" hidden></div>
       </form>
       <div class="toolbar__spacer"></div>
       ${
@@ -69,6 +71,120 @@ export function render(root, ctx) {
 
   const list = root.querySelector('[data-role="list"]');
   const searchForm = root.querySelector('[data-role="search"]');
+
+  /* ---------- 书名联想 ---------- */
+
+  const suggestPanel = root.querySelector('[data-role="suggest"]');
+  const keywordInput = searchForm.elements.namedItem('keyword');
+  const SUGGEST_DELAY = 140;
+  let suggestTimer = 0;
+  let suggestSeq = 0;
+  let suggestItems = [];
+  let activeIndex = -1;
+
+  function closeSuggest() {
+    suggestPanel.hidden = true;
+    suggestPanel.innerHTML = '';
+    keywordInput.setAttribute('aria-expanded', 'false');
+    suggestItems = [];
+    activeIndex = -1;
+  }
+
+  function paintSuggest(items, query) {
+    suggestItems = items;
+    activeIndex = -1;
+    if (!items.length) {
+      closeSuggest();
+      return;
+    }
+    // 只在「确实从开头匹配」时高亮前缀，避免归一化差异导致切错位置
+    const matched = (title) => title.toLowerCase().startsWith(query.toLowerCase());
+    suggestPanel.innerHTML = items
+      .map((item, index) => {
+        const title = esc(item.title);
+        const body = matched(item.title)
+          ? `<mark>${esc(item.title.slice(0, query.length))}</mark>${esc(item.title.slice(query.length))}`
+          : title;
+        return `<button class="suggest__item" type="button" role="option" data-index="${index}">
+          <span class="suggest__title">${body}</span>
+          <span class="suggest__isbn">${esc(item.isbn)}</span>
+        </button>`;
+      })
+      .join('');
+    suggestPanel.hidden = false;
+    keywordInput.setAttribute('aria-expanded', 'true');
+  }
+
+  function moveActive(delta) {
+    if (!suggestItems.length) return;
+    activeIndex = (activeIndex + delta + suggestItems.length) % suggestItems.length;
+    suggestPanel.querySelectorAll('.suggest__item').forEach((el, index) => {
+      el.classList.toggle('is-active', index === activeIndex);
+    });
+    suggestPanel.children[activeIndex]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function applySuggest(item) {
+    keywordInput.value = item.title;
+    state.keyword = item.title;
+    state.page = 1;
+    closeSuggest();
+    load();
+  }
+
+  async function fetchSuggest(raw) {
+    const query = raw.trim();
+    if (!query) {
+      closeSuggest();
+      return;
+    }
+    const seq = ++suggestSeq;
+    try {
+      const items = await api.suggestBooks(query, 8);
+      if (disposed || seq !== suggestSeq) return;
+      // 输入框内容已变化则丢弃这次结果，避免慢响应盖掉新输入
+      if (keywordInput.value.trim() !== query) return;
+      paintSuggest(items || [], query);
+    } catch {
+      if (seq === suggestSeq) closeSuggest();
+    }
+  }
+
+  keywordInput.addEventListener('input', () => {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(() => fetchSuggest(keywordInput.value), SUGGEST_DELAY);
+  });
+
+  keywordInput.addEventListener('keydown', (event) => {
+    if (suggestPanel.hidden || !suggestItems.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveActive(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActive(-1);
+    } else if (event.key === 'Escape') {
+      closeSuggest();
+    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      event.preventDefault();
+      applySuggest(suggestItems[activeIndex]);
+    }
+  });
+
+  // mousedown 先阻止默认行为，否则输入框先失焦、下拉先被关掉，点击落空
+  suggestPanel.addEventListener('mousedown', (event) => event.preventDefault());
+  suggestPanel.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-index]');
+    if (!button) return;
+    const item = suggestItems[Number(button.dataset.index)];
+    if (item) applySuggest(item);
+  });
+
+  keywordInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!disposed) closeSuggest();
+    }, 120);
+  });
 
   /* ---------- 数据 ---------- */
 
@@ -603,6 +719,7 @@ export function render(root, ctx) {
 
   searchForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    closeSuggest();
     state.keyword = searchForm.elements.namedItem('keyword').value.trim();
     state.page = 1;
     load();
@@ -648,5 +765,6 @@ export function render(root, ctx) {
 
   return () => {
     disposed = true;
+    clearTimeout(suggestTimer);
   };
 }

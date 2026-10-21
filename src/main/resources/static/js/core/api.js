@@ -103,6 +103,8 @@ export const api = {
 
   /* ---- 图书 ---- */
   listBooks: (query) => get('/api/books', query),
+  /** 书名联想（前缀匹配），只返回 id/isbn/title，不含库存等易变字段 */
+  suggestBooks: (q, limit) => get('/api/books/suggest', { q, limit }),
   getBook: (id) => get(`/api/books/${id}`),
   createBook: (payload) => post('/api/books', payload),
   updateBook: (id, payload) => put(`/api/books/${id}`, payload),
