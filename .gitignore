@@ -53,6 +53,10 @@ logs/
 *.dumpstream
 hs_err_pid*
 
+### 数据库备份（演示/快照数据，一律不入库） ###
+backup/
+*.sql.gz
+
 ### 构建工具残留 ###
 .flattened-pom.xml
 dependency-reduced-pom.xml
