@@ -460,6 +460,98 @@ button { font: inherit; color: inherit; }
   font-size: 11.5px;
 }
 
+/* ---------- 热门榜 ---------- */
+.hot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.hot[hidden] { display: none; }
+.hot__head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+.hot__label {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: .06em;
+  color: var(--brass);
+}
+.hot__hint {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.hot__list {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.hot__cell { flex: none; }
+.hot__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 230px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.hot__item:hover { border-color: var(--brass); color: var(--ink); }
+.hot__rank {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  color: var(--ink-3);
+  font-size: 10.5px;
+}
+.hot__rank.is-top { background: var(--brass-soft); color: var(--brass); }
+.hot__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hot__meta {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .hot { flex-direction: column; align-items: stretch; gap: 8px; }
+  .hot__head {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding-right: 0;
+    border-right: 0;
+  }
+}
+
 .input,
 .select,
 .textarea {

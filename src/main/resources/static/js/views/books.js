@@ -33,6 +33,8 @@ import { openDialog, openDrawer, openFormModal, confirmDialog } from '../ui/moda
 import { createReaderPicker } from '../ui/reader-picker.js';
 
 const PAGE_SIZE = 9;
+/** 首页热门榜条数：够展示，又不至于把检索结果挤出首屏 */
+const HOT_LIMIT = 5;
 
 export function render(root, ctx) {
   const { session } = ctx;
@@ -66,10 +68,12 @@ export function render(root, ctx) {
           : ''
       }
     </div>
+    <div class="hot" data-role="hot" hidden></div>
     <div data-role="list"></div>
   `;
 
   const list = root.querySelector('[data-role="list"]');
+  const hotHost = root.querySelector('[data-role="hot"]');
   const searchForm = root.querySelector('[data-role="search"]');
 
   /* ---------- 书名联想 ---------- */
@@ -192,8 +196,13 @@ export function render(root, ctx) {
     const seq = ++state.seq;
     list.innerHTML = skeletonCards(PAGE_SIZE);
     try {
-      const page = await api.listBooks({ keyword: state.keyword, page: state.page, size: state.size });
+      const [page, hot] = await Promise.all([
+        api.listBooks({ keyword: state.keyword, page: state.page, size: state.size }),
+        // 热门榜是附加信息，失败时降级为不显示，不拖垮整页检索
+        api.hotBooks(HOT_LIMIT).catch(() => []),
+      ]);
       if (disposed || seq !== state.seq) return;
+      paintHot(hot || []);
       state.total = page?.total || 0;
       state.records = page?.records || [];
 
@@ -231,6 +240,39 @@ export function render(root, ctx) {
   }
 
   /* ---------- 渲染 ---------- */
+
+  /**
+   * 热门榜：借阅次数 + 预约人数加权后的前 N 名。
+   * 点击条目直接把书名填进搜索框并检索 —— 榜单是入口，不是另一套详情页。
+   */
+  function paintHot(items) {
+    if (!items.length) {
+      hotHost.hidden = true;
+      hotHost.innerHTML = '';
+      return;
+    }
+    hotHost.hidden = false;
+    hotHost.innerHTML = `
+      <div class="hot__head">
+        <span class="hot__label">热门榜</span>
+        <span class="hot__hint">近 30 天 · 借阅次数 + 预约×2</span>
+      </div>
+      <ol class="hot__list">
+        ${items
+          .map(
+            (item, index) => `<li class="hot__cell">
+              <button class="hot__item" type="button" data-action="hot"
+                data-title="${esc(item.title)}" title="${esc(item.title)}">
+                <span class="hot__rank${index < 3 ? ' is-top' : ''}">${index + 1}</span>
+                <span class="hot__name">${esc(item.title)}</span>
+                <span class="hot__meta">借 <b class="num">${item.borrowCount}</b> · 约 <b class="num">${item.reservationCount}</b></span>
+              </button>
+            </li>`,
+          )
+          .join('')}
+      </ol>
+    `;
+  }
 
   function paint() {
     if (!state.records.length) {
@@ -737,6 +779,17 @@ export function render(root, ctx) {
       return;
     }
     if (action === 'create') return openCreateForm();
+    if (action === 'hot') {
+      // 榜单条目不在当前分页里，按书名检索而不是按 id 找卡片
+      const title = target.dataset.title;
+      if (!title) return;
+      keywordInput.value = title;
+      state.keyword = title;
+      state.page = 1;
+      closeSuggest();
+      load();
+      return;
+    }
 
     const book = state.records.find((item) => item.id === id);
     if (!book) return;
