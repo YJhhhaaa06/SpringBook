@@ -69,3 +69,7 @@ dependency-reduced-pom.xml
 Thumbs.db
 desktop.ini
 
+### 交付包（jar 由构建生成，不入库） ###
+release/*.jar
+release/*.zip
+
