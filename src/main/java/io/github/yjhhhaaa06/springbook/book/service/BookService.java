@@ -7,6 +7,7 @@ import io.github.yjhhhaaa06.springbook.book.dto.BookResponse;
 import io.github.yjhhhaaa06.springbook.book.dto.BookSuggestion;
 import io.github.yjhhhaaa06.springbook.book.dto.BookUpdateRequest;
 import io.github.yjhhhaaa06.springbook.book.index.BookIndex;
+import io.github.yjhhhaaa06.springbook.book.index.BookMemoryIndex;
 import io.github.yjhhhaaa06.springbook.book.mapper.BookMapper;
 import io.github.yjhhhaaa06.springbook.common.BizException;
 import io.github.yjhhhaaa06.springbook.common.ErrorCode;
@@ -23,6 +24,11 @@ import java.util.List;
 /**
  * 图书业务：新增、修改（乐观锁）、删除（借阅/预约占用校验）、查询与分页检索、
  * 入库/下架（调整总册数，下架校验在借 + 未过期 READY 预留）、书名联想。
+ *
+ * <p><b>读走内存、写走数据库</b>：按 id / ISBN 取书命中 {@link BookMemoryIndex} 的线性表，
+ * 不再访问数据库；分页模糊检索必须留在 SQL（{@code LIKE '%kw%'} + 分页 + 计数），
+ * 内存表替不了它。所有写操作仍然直连数据库，索引只在事务提交后同步 —— 缓存从不参与
+ * 库存扣减、乐观锁这类正确性判断，这是它敢存在的唯一理由。
  */
 @Service
 public class BookService {
@@ -35,13 +41,15 @@ public class BookService {
     private final LoanMapper loanMapper;
     private final ReservationMapper reservationMapper;
     private final BookIndex bookIndex;
+    private final BookMemoryIndex bookMemoryIndex;
 
     public BookService(BookMapper bookMapper, LoanMapper loanMapper, ReservationMapper reservationMapper,
-                       BookIndex bookIndex) {
+                       BookIndex bookIndex, BookMemoryIndex bookMemoryIndex) {
         this.bookMapper = bookMapper;
         this.loanMapper = loanMapper;
         this.reservationMapper = reservationMapper;
         this.bookIndex = bookIndex;
+        this.bookMemoryIndex = bookMemoryIndex;
     }
 
     @Transactional
@@ -61,7 +69,11 @@ public class BookService {
             throw new BizException(ErrorCode.ISBN_DUPLICATED);
         }
         bookIndex.syncAdd(BookSuggestion.from(book));
-        return BookResponse.from(bookMapper.findById(book.getId()));
+        // 插入后的行才有 createdAt/version，回查一次拿到完整对象；同一份数据两用：
+        // 既作为响应，也作为索引条目（避免缓存里存一个字段残缺的 Book）
+        Book created = bookMapper.findById(book.getId());
+        bookMemoryIndex.syncAdd(created);
+        return BookResponse.from(created);
     }
 
     @Transactional
@@ -76,7 +88,9 @@ public class BookService {
                 // book 仍持有旧书名，正好作为索引里要摘掉的那一条
                 bookIndex.syncUpdate(BookSuggestion.from(book),
                         new BookSuggestion(id, book.getIsbn(), req.title()));
-                return BookResponse.from(bookMapper.findById(id));
+                Book refreshed = bookMapper.findById(id);
+                bookMemoryIndex.syncUpdate(refreshed);
+                return BookResponse.from(refreshed);
             }
             book = bookMapper.findById(id);
             if (book == null) {
@@ -109,7 +123,9 @@ public class BookService {
         if (bookMapper.updateCopies(id, newTotal, delta, book.getTotalCopies()) != 1) {
             throw new BizException(ErrorCode.BOOK_STOCK_CONFLICT);
         }
-        return BookResponse.from(bookMapper.findById(id));
+        Book refreshed = bookMapper.findById(id);
+        bookMemoryIndex.syncUpdate(refreshed);
+        return BookResponse.from(refreshed);
     }
 
     @Transactional
@@ -126,10 +142,34 @@ public class BookService {
         }
         bookMapper.deleteById(id);
         bookIndex.syncRemove(BookSuggestion.from(book));
+        bookMemoryIndex.syncRemove(id);
     }
 
+    /** 按 id 取书：命中内存线性表的「id → 下标」目录，O(1)；未命中才回源数据库。 */
     public BookResponse getById(Long id) {
+        Book cached = bookMemoryIndex.findById(id);
+        if (cached != null) {
+            return BookResponse.from(cached);
+        }
+        // 未命中只会发生在启动装载完成前的几秒，或这条刚被移除。回源但不回填 ——
+        // 回填会与「删除后 afterCommit 移除」形成竞态，让已删除的书重新出现。
         Book book = bookMapper.findById(id);
+        if (book == null) {
+            throw new BizException(ErrorCode.BOOK_NOT_FOUND);
+        }
+        return BookResponse.from(book);
+    }
+
+    /**
+     * 按 ISBN 取书：在按 ISBN 有序的线性表上二分，O(log n)。
+     * 未命中同样只回源、不回填，理由见 {@link #getById}。
+     */
+    public BookResponse getByIsbn(String isbn) {
+        Book cached = bookMemoryIndex.findByIsbn(isbn);
+        if (cached != null) {
+            return BookResponse.from(cached);
+        }
+        Book book = bookMapper.findByIsbn(isbn);
         if (book == null) {
             throw new BizException(ErrorCode.BOOK_NOT_FOUND);
         }

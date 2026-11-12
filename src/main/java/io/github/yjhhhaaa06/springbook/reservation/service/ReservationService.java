@@ -3,6 +3,7 @@ package io.github.yjhhhaaa06.springbook.reservation.service;
 import io.github.yjhhhaaa06.springbook.auth.AccessPolicy;
 import io.github.yjhhhaaa06.springbook.auth.AuthPrincipal;
 import io.github.yjhhhaaa06.springbook.book.domain.Book;
+import io.github.yjhhhaaa06.springbook.book.index.BookMemoryIndex;
 import io.github.yjhhhaaa06.springbook.book.mapper.BookMapper;
 import io.github.yjhhhaaa06.springbook.common.BizException;
 import io.github.yjhhhaaa06.springbook.common.ErrorCode;
@@ -42,16 +43,19 @@ public class ReservationService {
     private final LoanMapper loanMapper;
     private final AccessPolicy accessPolicy;
     private final BookProperties props;
+    private final BookMemoryIndex bookMemoryIndex;
 
     public ReservationService(ReservationMapper reservationMapper, BookMapper bookMapper,
                               ReaderMapper readerMapper, LoanMapper loanMapper,
-                              AccessPolicy accessPolicy, BookProperties props) {
+                              AccessPolicy accessPolicy, BookProperties props,
+                              BookMemoryIndex bookMemoryIndex) {
         this.reservationMapper = reservationMapper;
         this.bookMapper = bookMapper;
         this.readerMapper = readerMapper;
         this.loanMapper = loanMapper;
         this.accessPolicy = accessPolicy;
         this.props = props;
+        this.bookMemoryIndex = bookMemoryIndex;
     }
 
     /**
@@ -104,6 +108,9 @@ public class ReservationService {
             bookMapper.lockById(reservation.getBookId());
             reservationMapper.updateStatus(reservationId, Reservation.STATUS_CANCELLED, null, null);
             handOverReservation(reservation.getBookId(), LocalDateTime.now());
+            // READY 取消后名额可能顺延给下一位（库存不变），也可能因队列已空而回架（+1），
+            // 是否真的变了只有库知道，直接整行回查覆盖
+            refreshBookIndex(reservation.getBookId());
         } else {
             reservationMapper.updateStatus(reservationId, Reservation.STATUS_CANCELLED, null, null);
         }
@@ -120,6 +127,9 @@ public class ReservationService {
         }
         bookMapper.lockById(bookId);
         expireStaleReady(bookId, LocalDateTime.now());
+        // 惰性清理可能把过期 READY 的名额回架（+1）。这是个读接口却有写副作用，
+        // 短期内不改它的语义，但缓存必须在提交后跟上
+        refreshBookIndex(bookId);
         return reservationMapper.listByBook(bookId).stream()
                 .map(ReservationResponse::from)
                 .toList();
@@ -152,6 +162,14 @@ public class ReservationService {
         if (bookMapper.decrementIfAvailable(bookId) != 1) {
             throw new BizException(ErrorCode.BOOK_STOCK_CONFLICT);
         }
+    }
+
+    /**
+     * 预约流转可能改变库存（名额回架 / 取消后释放），刷新图书内存索引。
+     * 必须回查整行：顺延给下一位时库存不变，队列空了才 +1，只有数据库知道是哪一种。
+     */
+    private void refreshBookIndex(Long bookId) {
+        bookMemoryIndex.syncUpdate(bookMapper.findById(bookId));
     }
 
     /**

@@ -85,6 +85,15 @@ public class BookController {
         return Result.ok(bookService.getById(id));
     }
 
+    /**
+     * 按书号（ISBN）查书。比 {@code /{id}} 多一段路径，两者不会混淆。
+     * 这条走内存有序表的二分，{@code /{id}} 走「id → 下标」目录。
+     */
+    @GetMapping("/isbn/{isbn}")
+    public Result<BookResponse> getByIsbn(@PathVariable String isbn) {
+        return Result.ok(bookService.getByIsbn(isbn));
+    }
+
     @GetMapping
     public Result<PageResult<BookResponse>> page(@RequestParam(required = false) String keyword,
                                                  @RequestParam(required = false) Integer page,

@@ -3,6 +3,7 @@ package io.github.yjhhhaaa06.springbook.loan.service;
 import io.github.yjhhhaaa06.springbook.auth.AccessPolicy;
 import io.github.yjhhhaaa06.springbook.auth.AuthPrincipal;
 import io.github.yjhhhaaa06.springbook.book.domain.Book;
+import io.github.yjhhhaaa06.springbook.book.index.BookMemoryIndex;
 import io.github.yjhhhaaa06.springbook.book.mapper.BookMapper;
 import io.github.yjhhhaaa06.springbook.common.BizException;
 import io.github.yjhhhaaa06.springbook.common.ErrorCode;
@@ -49,10 +50,11 @@ public class LoanService {
     private final ReservationService reservationService;
     private final AccessPolicy accessPolicy;
     private final BookProperties props;
+    private final BookMemoryIndex bookMemoryIndex;
 
     public LoanService(LoanMapper loanMapper, BookMapper bookMapper, ReaderMapper readerMapper,
                        ReservationMapper reservationMapper, ReservationService reservationService,
-                       AccessPolicy accessPolicy, BookProperties props) {
+                       AccessPolicy accessPolicy, BookProperties props, BookMemoryIndex bookMemoryIndex) {
         this.loanMapper = loanMapper;
         this.bookMapper = bookMapper;
         this.readerMapper = readerMapper;
@@ -60,6 +62,7 @@ public class LoanService {
         this.reservationService = reservationService;
         this.accessPolicy = accessPolicy;
         this.props = props;
+        this.bookMemoryIndex = bookMemoryIndex;
     }
 
     @Transactional
@@ -100,6 +103,7 @@ public class LoanService {
             Loan loan = insertLoan(bookId, readerId, now);
             reservationMapper.updateStatus(ready.getId(), Reservation.STATUS_FULFILLED,
                     ready.getReadyAt(), ready.getHoldUntil());
+            refreshBookIndex(bookId);
             return LoanResponse.from(loanMapper.findById(loan.getId()));
         }
 
@@ -108,6 +112,7 @@ public class LoanService {
             throw new BizException(ErrorCode.BOOK_OUT_OF_STOCK);
         }
         Loan loan = insertLoan(bookId, readerId, now);
+        refreshBookIndex(bookId);
         return LoanResponse.from(loanMapper.findById(loan.getId()));
     }
 
@@ -140,6 +145,7 @@ public class LoanService {
             readerMapper.updateStatus(loan.getReaderId(), Reader.STATUS_FROZEN);
         }
         reservationService.fillQueueAfterReturn(loan.getBookId(), now);
+        refreshBookIndex(loan.getBookId());
 
         return new LoanReturnResponse(
                 loanId,
@@ -198,6 +204,17 @@ public class LoanService {
             return;
         }
         readerMapper.updateStatus(readerId, Reader.STATUS_ACTIVE);
+    }
+
+    /**
+     * 借还之后刷新图书内存索引。
+     *
+     * <p>必须回查整行、不能按差值算：借书路径会先调 {@code expireStaleReady} 清理过期预约
+     * （可能把库存 +1），再扣减；还书路径会先 +1，再被 {@code fillQueueAfterReturn} 占掉（-1）。
+     * 净变化可能是 0、-1 或 +1，只有数据库自己知道。回查发生在事务内，读得到本事务的修改。
+     */
+    private void refreshBookIndex(Long bookId) {
+        bookMemoryIndex.syncUpdate(bookMapper.findById(bookId));
     }
 
     private Loan insertLoan(Long bookId, Long readerId, LocalDateTime now) {
