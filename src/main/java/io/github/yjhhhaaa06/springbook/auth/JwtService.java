@@ -7,6 +7,8 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.github.yjhhhaaa06.springbook.auth.domain.Account;
 import io.github.yjhhhaaa06.springbook.config.BookProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -14,11 +16,16 @@ import java.time.temporal.ChronoUnit;
 
 /**
  * JWT 签发与校验（HS256，无状态）。
- * 密钥只从环境变量 JWT_SECRET 注入（application.yaml 占位），缺失时启动失败（fail-fast）。
+ * 密钥优先从 JWT_SECRET 注入；未配置时回退到内置演示密钥并打印 WARN，
+ * 目的是让拿到 jar 的人不必先学会设环境变量就能跑起来。正式部署务必覆盖。
  * 载荷：sub(accountId)、username、role、readerId、iat、exp。
  */
 @Component
 public class JwtService {
+
+    /** 内置演示密钥：仅用于本地/课程场景，正式部署必须用 JWT_SECRET 覆盖 */
+    private static final String DEMO_SECRET = "springbook-demo-secret-change-me-in-production-32";
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     private final Algorithm algorithm;
     private final JWTVerifier verifier;
@@ -27,7 +34,8 @@ public class JwtService {
     public JwtService(BookProperties props) {
         String secret = props.jwt().secret();
         if (secret == null || secret.isBlank()) {
-            throw new IllegalStateException("缺少 JWT_SECRET 环境变量，拒绝启动（fail-fast）");
+            secret = DEMO_SECRET;
+            log.warn("未设置 JWT_SECRET，已使用内置演示密钥启动；正式部署请改用环境变量覆盖");
         }
         this.algorithm = Algorithm.HMAC256(secret);
         this.verifier = JWT.require(algorithm).build();

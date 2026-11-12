@@ -35,7 +35,7 @@ public record BookProperties(Loan loan, Fine fine, Reservation reservation, Jwt 
     public record Reservation(int holdHours) {
     }
 
-    /** JWT 配置：secret 只从环境变量 JWT_SECRET 注入，缺失时启动失败 */
+    /** JWT 配置：secret 留空时由 JwtService 回退到内置演示密钥，正式部署应通过 JWT_SECRET 覆盖 */
     public record Jwt(String secret, int expireMinutes) {
     }
 }

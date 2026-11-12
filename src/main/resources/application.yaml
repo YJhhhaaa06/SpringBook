@@ -34,7 +34,7 @@ book:
   reservation:
     hold-hours: 48            # 预约到书后的保留时长
   jwt:
-    secret: ${JWT_SECRET:}    # 只从环境变量注入，缺失则启动失败（fail-fast）
+    secret: ${JWT_SECRET:}    # 留空时回退到内置演示密钥并打印 WARN；正式部署必须用环境变量覆盖
     expire-minutes: 120       # token 有效期 2 小时
 
 server:
