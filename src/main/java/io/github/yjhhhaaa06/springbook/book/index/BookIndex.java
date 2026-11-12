@@ -1,12 +1,11 @@
 package io.github.yjhhhaaa06.springbook.book.index;
 
 import io.github.yjhhhaaa06.springbook.book.dto.BookSuggestion;
+import io.github.yjhhhaaa06.springbook.common.AfterCommit;
 import io.github.yjhhhaaa06.springbook.ds.CharTrie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -133,28 +132,15 @@ public class BookIndex {
 
     /** 只在事务提交成功后写索引；回滚的事务不会留下脏条目 */
     public void syncAdd(BookSuggestion book) {
-        afterCommit(() -> add(book));
+        AfterCommit.run(() -> add(book));
     }
 
     public void syncRemove(BookSuggestion book) {
-        afterCommit(() -> remove(book));
+        AfterCommit.run(() -> remove(book));
     }
 
     public void syncUpdate(BookSuggestion before, BookSuggestion after) {
-        afterCommit(() -> update(before, after));
-    }
-
-    private static void afterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    action.run();
-                }
-            });
-        } else {
-            action.run();
-        }
+        AfterCommit.run(() -> update(before, after));
     }
 
     // ---------- 内部 ----------
