@@ -2,7 +2,7 @@ package io.github.yjhhhaaa06.springbook.book.service;
 
 import io.github.yjhhhaaa06.springbook.book.domain.Book;
 import io.github.yjhhhaaa06.springbook.book.dto.HotBookResponse;
-import io.github.yjhhhaaa06.springbook.book.mapper.BookMapper;
+import io.github.yjhhhaaa06.springbook.book.index.BookMemoryIndex;
 import io.github.yjhhhaaa06.springbook.common.BookHitCount;
 import io.github.yjhhhaaa06.springbook.ds.TopK;
 import io.github.yjhhhaaa06.springbook.loan.mapper.LoanMapper;
@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
  * <p><b>为什么不在一条 SQL 里做完</b>：两条聚合各自走覆盖索引、各自归属自己的模块；
  * 权重、时间窗这些口径留在代码里，改一行就能调，也要能被单元测试直接盯住。
  * 硬塞进一条 UNION 子查询，参数要写两遍、口径散在 SQL 里，review 时看不出来。
+ *
+ * <p><b>书名与 ISBN 从内存索引取</b>：这两个字段不随借还变化，放进 {@link BookMemoryIndex}
+ * 后用缓存回答是安全的，省掉最后那次 {@code id IN (...)} 回表。热度计数本身不能进索引 ——
+ * 它是随时间窗滑动的统计量，没有写操作也会变，只能每次从库里聚合。
  *
  * <p><b>为什么用归并 + 堆</b>：两条聚合都按 bookId 升序返回，因此可以在一次线性扫描里
  * 合并成按 bookId 有序的候选流（{@link #merge}），再喂给容量为 k 的最小堆（{@link TopK}）：
@@ -59,12 +63,13 @@ public class BookHotService {
 
     private final LoanMapper loanMapper;
     private final ReservationMapper reservationMapper;
-    private final BookMapper bookMapper;
+    private final BookMemoryIndex bookMemoryIndex;
 
-    public BookHotService(LoanMapper loanMapper, ReservationMapper reservationMapper, BookMapper bookMapper) {
+    public BookHotService(LoanMapper loanMapper, ReservationMapper reservationMapper,
+                          BookMemoryIndex bookMemoryIndex) {
         this.loanMapper = loanMapper;
         this.reservationMapper = reservationMapper;
-        this.bookMapper = bookMapper;
+        this.bookMemoryIndex = bookMemoryIndex;
     }
 
     /**
@@ -83,7 +88,7 @@ public class BookHotService {
             return List.of();
         }
 
-        Map<Long, Book> books = bookMapper.findByIds(top.stream().map(Candidate::bookId).toList())
+        Map<Long, Book> books = bookMemoryIndex.findByIds(top.stream().map(Candidate::bookId).toList())
                 .stream()
                 .collect(Collectors.toMap(Book::getId, Function.identity(), (left, right) -> left));
         List<HotBookResponse> ranked = new ArrayList<>(top.size());
