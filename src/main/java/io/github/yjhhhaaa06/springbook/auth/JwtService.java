@@ -23,7 +23,7 @@ import java.time.temporal.ChronoUnit;
 @Component
 public class JwtService {
 
-    /** 内置演示密钥：仅用于本地/课程场景，正式部署必须用 JWT_SECRET 覆盖 */
+    /** 内置演示密钥：仅用于本地演示场景，正式部署必须用 JWT_SECRET 覆盖 */
     private static final String DEMO_SECRET = "springbook-demo-secret-change-me-in-production-32";
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
