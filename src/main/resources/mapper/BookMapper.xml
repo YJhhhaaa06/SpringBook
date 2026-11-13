@@ -31,6 +31,13 @@
         WHERE isbn = #{isbn}
     </select>
 
+    <select id="findByIsbnLoose" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
+        SELECT <include refid="allColumns"/>
+        FROM books
+        WHERE REPLACE(isbn, '-', '') = #{isbn}
+        LIMIT 1
+    </select>
+
     <select id="listAll" resultType="io.github.yjhhhaaa06.springbook.book.domain.Book">
         SELECT <include refid="allColumns"/>
         FROM books

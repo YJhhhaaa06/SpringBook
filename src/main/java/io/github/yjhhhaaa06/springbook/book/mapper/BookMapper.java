@@ -21,6 +21,13 @@ public interface BookMapper {
 
     Book findByIsbn(@Param("isbn") String isbn);
 
+    /**
+     * 按「去掉连字符」的书号查询。扫码枪通常输出 {@code 9787536692930} 这样的纯数字，
+     * 而库里存的是带连字符的展示格式，两者归一化后才能对上。
+     * 该查询用不上索引，只作为精确查询未命中时的兜底。
+     */
+    Book findByIsbnLoose(@Param("isbn") String isbn);
+
     /** 全量读取（仅书名索引启动装载使用；其余查询一律走条件检索） */
     List<Book> listAll();
 

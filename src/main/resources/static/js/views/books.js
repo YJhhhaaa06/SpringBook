@@ -59,6 +59,11 @@ export function render(root, ctx) {
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="book-suggest" />
         <div class="search__panel" id="book-suggest" data-role="suggest" role="listbox" hidden></div>
       </form>
+      <form class="scan" data-role="scan">
+        <span class="scan__icon">${icon('scan', 16)}</span>
+        <input class="input" name="isbn" type="text" autocomplete="off"
+          placeholder="书号 / 扫码" aria-label="按书号精确查书" />
+      </form>
       <div class="toolbar__spacer"></div>
       ${
         admin
@@ -75,6 +80,9 @@ export function render(root, ctx) {
   const list = root.querySelector('[data-role="list"]');
   const hotHost = root.querySelector('[data-role="hot"]');
   const searchForm = root.querySelector('[data-role="search"]');
+  const scanForm = root.querySelector('[data-role="scan"]');
+  /** 去掉空格与连字符后应是 13 位、以 978/979 开头 */
+  const ISBN_13 = /^97[89]\d{10}$/;
 
   /* ---------- 书名联想 ---------- */
 
@@ -765,6 +773,38 @@ export function render(root, ctx) {
     state.keyword = searchForm.elements.namedItem('keyword').value.trim();
     state.page = 1;
     load();
+  });
+
+  /**
+   * 按书号精确查书。入口是为扫码枪准备的：扫出来通常是纯数字，
+   * 服务端会去掉连字符后再匹配，这里只负责挡住明显不是书号的输入。
+   */
+  scanForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = scanForm.elements.namedItem('isbn');
+    const raw = input.value.trim();
+    if (!raw) return;
+    if (!ISBN_13.test(raw.replace(/[\s-]/g, ''))) {
+      toastError(null, '请输入 13 位书号，例如 978-7-5366-9293-0');
+      input.select();
+      return;
+    }
+    try {
+      const book = await api.getBookByIsbn(raw);
+      // 回填库里的规范格式，列表检索才能精确命中这一条
+      keywordInput.value = book.isbn;
+      state.keyword = book.isbn;
+      state.page = 1;
+      closeSuggest();
+      scanForm.reset();
+      await load();
+    } catch (error) {
+      if (error?.code === 40401) {
+        toastError(null, `没有找到书号 ${raw} 对应的馆藏`);
+      } else {
+        toastError(error, '按书号查询失败');
+      }
+    }
   });
 
   delegate(root, 'click', '[data-action]', async (event, target) => {

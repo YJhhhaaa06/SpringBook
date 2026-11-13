@@ -165,11 +165,16 @@ public class BookService {
      * 未命中同样只回源、不回填，理由见 {@link #getById}。
      */
     public BookResponse getByIsbn(String isbn) {
-        Book cached = bookMemoryIndex.findByIsbn(isbn);
+        String raw = isbn == null ? "" : isbn.trim();
+        Book cached = bookMemoryIndex.findByIsbn(raw);
         if (cached != null) {
             return BookResponse.from(cached);
         }
-        Book book = bookMapper.findByIsbn(isbn);
+        Book book = bookMapper.findByIsbn(raw);
+        if (book == null) {
+            // 扫码枪输出纯数字，库里存的是带连字符的展示格式，归一化后再试一次
+            book = bookMapper.findByIsbnLoose(raw.replace("-", ""));
+        }
         if (book == null) {
             throw new BizException(ErrorCode.BOOK_NOT_FOUND);
         }

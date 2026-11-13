@@ -108,6 +108,8 @@ export const api = {
   /** 热门榜：借阅次数 + 预约人数加权，days=0 表示不限时间窗 */
   hotBooks: (limit, days) => get('/api/books/hot', { limit, days }),
   getBook: (id) => get(`/api/books/${id}`),
+  /** 按书号精确查书：纯数字或带连字符都可以，服务端会归一化 */
+  getBookByIsbn: (isbn) => get(`/api/books/isbn/${encodeURIComponent(isbn)}`),
   createBook: (payload) => post('/api/books', payload),
   updateBook: (id, payload) => put(`/api/books/${id}`, payload),
   adjustCopies: (id, totalCopies) => patch(`/api/books/${id}/copies`, { totalCopies }),

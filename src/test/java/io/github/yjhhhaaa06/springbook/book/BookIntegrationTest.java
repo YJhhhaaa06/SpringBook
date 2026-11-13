@@ -38,6 +38,20 @@ class BookIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void findByIsbnAcceptsDigitsOnly() {
+        long id = createBook("978-7-111-00009-9", "扫码枪输入", 2, 5000);
+
+        ApiResult exact = get("/api/books/isbn/978-7-111-00009-9", adminToken);
+        assertThat(exact.code()).isZero();
+        assertThat(longOf(asMap(exact.data()), "id")).isEqualTo(id);
+
+        // 扫码枪输出的是纯数字，服务端去连字符后应当仍能命中同一本
+        ApiResult loose = get("/api/books/isbn/9787111000099", adminToken);
+        assertThat(loose.code()).isZero();
+        assertThat(longOf(asMap(loose.data()), "id")).isEqualTo(id);
+    }
+
+    @Test
     void updateTitleAndPriceBumpsVersion() {
         long id = createBook("978-7-111-00003-3", "旧书名", 2, 5000);
 

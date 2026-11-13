@@ -408,6 +408,25 @@ button { font: inherit; color: inherit; }
 }
 .search .input { padding-left: 34px; }
 
+/* 书号精确查询：给扫码枪用的短输入框 */
+.scan {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 190px;
+  position: relative;
+}
+.scan__icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  width: 16px; height: 16px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.scan .input { padding-left: 34px; }
+
 /* 书名联想下拉：绝对定位在搜索框下方，与输入框同宽 */
 .search__panel {
   position: absolute;
