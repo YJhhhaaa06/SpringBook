@@ -5,6 +5,7 @@
 import { api } from '../core/api.js';
 import { startSession } from '../core/session.js';
 import { navigate } from '../core/router.js';
+import { designerText } from '../core/designer.js';
 import { esc } from '../ui/format.js';
 import { toastOk, toastError } from '../ui/toast.js';
 import { applyFieldErrors, clearFieldErrors } from '../ui/components.js';
@@ -98,6 +99,11 @@ export function render(root, { notice = '' } = {}) {
           <div class="auth-hint">
             默认管理员 <code>admin</code> / <code>admin123</code>（可用环境变量
             <code>ADMIN_PASSWORD</code> 覆盖），首次登录后请到「我的账户」修改口令。
+          </div>
+
+          <div class="auth-designer">
+            <span class="auth-designer__label">课程设计</span>
+            <span class="auth-designer__text">${esc(designerText())}</span>
           </div>
         </div>
       </main>

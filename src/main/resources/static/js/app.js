@@ -7,6 +7,7 @@
 import { getSession, clearSession } from './core/session.js';
 import { parseHash, navigate, replace } from './core/router.js';
 import { UNAUTHORIZED_EVENT } from './core/api.js';
+import { designerText } from './core/designer.js';
 import { startClock, tickCountdowns } from './ui/clock.js';
 import { toastWarn } from './ui/toast.js';
 import { esc } from './ui/format.js';
@@ -141,6 +142,10 @@ function mountShell(session) {
       <div class="main">
         <header class="topbar" data-role="topbar">
           <div class="topbar__title">
+            <span class="designer-line">
+              <span class="designer-line__label">设计者</span>
+              <span class="designer-line__text">${esc(designerText())}</span>
+            </span>
             <h1 data-role="title">图书检索</h1>
             <p class="topbar__sub" data-role="sub"></p>
           </div>
