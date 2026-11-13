@@ -86,7 +86,7 @@ docker compose --profile full down -v  # 连数据卷一起删，库清空
 
 要么每条命令都带 `--profile full`，要么在 `.env` 里写 `COMPOSE_PROFILES=full` 一次性解决。两条路不要混用。
 
-更多细节（镜像构成、体积、验证记录）见 [开发者手册](开发者手册.md)。
+更多细节（镜像构成、体积、自检脚本）见 [开发者手册](开发者手册.md)。
 
 ## 和方式 ① 的关系
 

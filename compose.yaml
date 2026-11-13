@@ -45,7 +45,7 @@ services:
       DB_NAME: springbook
       DB_USER: springbook
       DB_PASSWORD: springbook
-      # 留空时应用会 fail-fast 退出并打印原因（见 .docs/运行手册.md），
+      # 留空时应用会回退到内置演示密钥并打印 WARN，
       # 这里不用 :? 是为了让「只起 MySQL」的日常命令不被强制要求该变量
       JWT_SECRET: ${JWT_SECRET:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}

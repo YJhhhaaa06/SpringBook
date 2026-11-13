@@ -3,7 +3,7 @@
 第一版链路：登录 -> 建书/建读者 -> 借 -> 预约 -> 还 -> 队首 READY -> 履约借出 -> 逾期罚款封顶。
 第二版追加：逾期自动冻结 -> 未缴清禁借 -> 缴纳罚款自动解冻 -> 自助注册 -> 数据归属 403
 -> 借阅上限 -> 入库/下架 -> 修改密码。
-前置：MySQL 容器(springbook-mysql) healthy、应用运行在 127.0.0.1:8080（JWT_SECRET 已注入）。
+前置：MySQL 容器(springbook-mysql) healthy、应用运行在 127.0.0.1:8080（JWT_SECRET 可选）。
 """
 import json
 import subprocess
